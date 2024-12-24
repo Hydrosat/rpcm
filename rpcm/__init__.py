@@ -5,7 +5,6 @@ import geojson
 import numpy as np
 import rasterio
 import rasterio.warp
-import srtm4
 
 from rpcm import rpc_model
 from rpcm import utils
@@ -53,8 +52,6 @@ def projection(img_path, lon, lat, z=None, crop_path=None, svg_path=None,
         float or list: y pixel coordinate(s) of the projected point(s)
     """
     rpc = rpc_from_geotiff(img_path)
-    if z is None:
-        z = srtm4.srtm4(lon, lat)
 
     x, y = rpc.projection(lon, lat, z)
 
@@ -124,10 +121,6 @@ def crop(output_crop_path, input_geotiff_path, aoi, z=None):
         z (float): altitude of the AOI center with respect to the WGS84
             ellipsoid.
     """
-    if z is None:  # read z from srtm
-        lons, lats = np.asarray(aoi['coordinates']).squeeze().T
-        z = srtm4.srtm4(np.mean(lons[:-1]), np.mean(lats[:-1]))
-
     # do the crop
     crop, x, y = utils.crop_aoi(input_geotiff_path, aoi, z)
 
@@ -164,12 +157,6 @@ def image_footprint(geotiff_path, z=None, verbose=False):
 
     if rpc_dict:
         rpc = rpc_model.RPCModel(rpc_dict)
-        if z is None:
-            z = srtm4.srtm4(rpc.lon_offset, rpc.lat_offset)
-            if np.isnan(z):
-                warnings.warn("no SRTM altitude available, using RPC alt_offset",
-                              category=NoSRTMWarning)
-                z = rpc.alt_offset
 
         lons, lats = rpc.localization([0, 0, w, w, 0],
                                       [0, h, h, 0, 0],
@@ -214,8 +201,6 @@ def angle_between_views(geotiff_path_1, geotiff_path_2, lon=None, lat=None,
         lon = rpc1.lon_offset
     if lat is None:
         lat = rpc1.lat_offset
-    if z is None:
-        z = srtm4.srtm4(lon, lat)
 
     a = utils.viewing_direction(*rpc1.incidence_angles(lon, lat, z))
     b = utils.viewing_direction(*rpc2.incidence_angles(lon, lat, z))
