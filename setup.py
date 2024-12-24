@@ -28,7 +28,7 @@ requirements = ['numpy',
                 'pyproj',
                 'geojson',
                 'rasterio[s3]>=1.2',
-                'srtm4>=1.0.2']
+                'hydrosat-cirrustask @ git+ssh://git@github.com/Hydrosat/cirrus-task-framework.git@0.18.8']
 
 extras_require = {'test': ['pytest']}
 

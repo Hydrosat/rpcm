@@ -5,7 +5,8 @@ import geojson
 import numpy as np
 import rasterio
 import rasterio.warp
-import srtm4
+# import srtm4
+from hydrosat.cirrustask import STATIC_BUCKET
 
 from rpcm import rpc_model
 from rpcm import utils
@@ -33,6 +34,29 @@ class NoSRTMWarning(Warning):
     pass
 
 
+def sample_NASADEM_pointset(LON_set, LAT_set, path_NASADEM=f"s3://{STATIC_BUCKET}/NASADEM/v1/NASADEM_be.vrt"):
+    """Sample the NASADEM file for the provided coordinates.
+
+    Args:
+        LON_set (list, array (1D)): list of Latitude coordinates
+        LAT_set (list, array (1D)): list of Longitude coordinates
+        path_NASADEM (s3 URI):      path to the NASADEM VRT in S3
+
+    Returns:
+        dem_vals (list): a list of DEM values for the sampled LON/LAT points
+    """
+    if type(LON_set) is list or type(LAT_set) is list:
+        with rasterio.open(path_NASADEM) as dem:
+            dem_gen = rasterio.sample.sample_gen(dem, zip(LON_set, LAT_set))
+            dem_vals = [v[0].astype(np.float32) for v in dem_gen]
+    else:
+        with rasterio.open(path_NASADEM) as dem:
+            dem_gen = rasterio.sample.sample_gen(dem, zip([LON_set], [LAT_set]))
+            dem_vals = [v[0].astype(np.float32) for v in dem_gen]
+
+    return dem_vals
+
+
 def projection(img_path, lon, lat, z=None, crop_path=None, svg_path=None,
                verbose=False):
     """
@@ -54,7 +78,8 @@ def projection(img_path, lon, lat, z=None, crop_path=None, svg_path=None,
     """
     rpc = rpc_from_geotiff(img_path)
     if z is None:
-        z = srtm4.srtm4(lon, lat)
+        # z = srtm4.srtm4(lon, lat)
+        z = sample_NASADEM_pointset(lon, lat)
 
     x, y = rpc.projection(lon, lat, z)
 
@@ -126,7 +151,8 @@ def crop(output_crop_path, input_geotiff_path, aoi, z=None):
     """
     if z is None:  # read z from srtm
         lons, lats = np.asarray(aoi['coordinates']).squeeze().T
-        z = srtm4.srtm4(np.mean(lons[:-1]), np.mean(lats[:-1]))
+        #z = srtm4.srtm4(np.mean(lons[:-1]), np.mean(lats[:-1]))
+        z = sample_NASADEM_pointset(np.mean(lons[:-1]), np.mean(lats[:-1]))
 
     # do the crop
     crop, x, y = utils.crop_aoi(input_geotiff_path, aoi, z)
@@ -165,7 +191,8 @@ def image_footprint(geotiff_path, z=None, verbose=False):
     if rpc_dict:
         rpc = rpc_model.RPCModel(rpc_dict)
         if z is None:
-            z = srtm4.srtm4(rpc.lon_offset, rpc.lat_offset)
+            # z = srtm4.srtm4(rpc.lon_offset, rpc.lat_offset)
+            z = sample_NASADEM_pointset(rpc.lon_offset, rpc.lat_offset)
             if np.isnan(z):
                 warnings.warn("no SRTM altitude available, using RPC alt_offset",
                               category=NoSRTMWarning)
@@ -215,7 +242,8 @@ def angle_between_views(geotiff_path_1, geotiff_path_2, lon=None, lat=None,
     if lat is None:
         lat = rpc1.lat_offset
     if z is None:
-        z = srtm4.srtm4(lon, lat)
+        # z = srtm4.srtm4(lon, lat)
+        z = sample_NASADEM_pointset(lon, lat)
 
     a = utils.viewing_direction(*rpc1.incidence_angles(lon, lat, z))
     b = utils.viewing_direction(*rpc2.incidence_angles(lon, lat, z))
