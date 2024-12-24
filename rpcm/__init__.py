@@ -32,7 +32,7 @@ class NoSRTMWarning(Warning):
     pass
 
 
-def projection(img_path, lon, lat, z=None, crop_path=None, svg_path=None,
+def projection(img_path, lon, lat, z, crop_path=None, svg_path=None,
                verbose=False):
     """
     Conversion of geographic coordinates to image coordinates.
@@ -109,7 +109,7 @@ def localization(img_path, x, y, z, crop_path=None, verbose=False):
     return lon, lat
 
 
-def crop(output_crop_path, input_geotiff_path, aoi, z=None):
+def crop(output_crop_path, input_geotiff_path, aoi, z):
     """
     Crop an area of interest (AOI) defined with geographic coordinates.
 
@@ -136,7 +136,7 @@ def crop(output_crop_path, input_geotiff_path, aoi, z=None):
     utils.rasterio_write(output_crop_path, crop, tags=tags)
 
 
-def image_footprint(geotiff_path, z=None, verbose=False):
+def image_footprint(geotiff_path, z, verbose=False):
     """
     Compute the longitude, latitude footprint of an image using its RPC model.
 
@@ -180,8 +180,8 @@ def image_footprint(geotiff_path, z=None, verbose=False):
     return footprint
 
 
-def angle_between_views(geotiff_path_1, geotiff_path_2, lon=None, lat=None,
-                        z=None, verbose=False):
+def angle_between_views(geotiff_path_1, geotiff_path_2, lon, lat,
+                        z, verbose=False):
     """
     Compute the view angle difference between two (stereo) images.
 
